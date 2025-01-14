@@ -61,6 +61,130 @@ form button {
     cursor: pointer;
 }
 
-.city-label {
+/* .city-label {
     pointer-events: none;
+} */
+
+.point {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity .5s ease;
+    cursor: pointer;
+}
+
+.point:hover {
+    transform: scale(1.2);
+}
+
+.point.visible {
+    opacity: 1;
+}
+
+.point.visible.show .text {
+    opacity: 1;
+}
+
+.point.visible .label {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.point .label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #000000;
+    border: 2px solid #ffffff;
+    color: #ffffff;
+    cursor: pointer;
+    opacity: 0.4;
+    /* transition: transform 0.3s; */
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.point.visible .label:hover {
+    transform: translate(-50%, -50%) scale(1.15);
+}
+
+.point .pulseTipon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+	width: 26px;
+	height: 26px;
+    pointer-events: none;
+}
+
+.point .pulseTipon::before {
+    content: '';
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	background: rgb(255,255,255);
+	border-radius: 100%;
+	opacity: 0;
+	pointer-events: none;
+
+    animation: pulse 3s calc(3s / 3) linear infinite;
+}
+
+.point .text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -130%);
+    width: max-content;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    border-radius: 10px;
+    background: #1a1a1a;
+    color: #ffffff;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.point .text .city_name {
+    font-family: 'MoscowSans', sans-serif;
+    font-size: 14px;
+    font-weight: 100;
+}
+
+.point .text .city_latitude,
+.point .text .city_longitude {
+    font-family: 'MoscowSans', sans-serif;
+    font-size: 12px;
+    font-weight: 100;
+}
+
+@keyframes pulse {
+    0% {
+        -webkit-transform: scale(1);
+                transform: scale(1);
+        opacity: 0.6;
+    }
+
+    100% {
+        -webkit-transform: scale(1.6);
+                transform: scale(1.6);
+        opacity: 0;
+    }
+}
+
+.point.show .pulseTipon::before {
+    -webkit-animation: none;
+            animation: none;
 }

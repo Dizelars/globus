@@ -18,9 +18,38 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
+/**
+ * Sizes
+ */
+const sizes = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    pixelRatio: Math.min(window.devicePixelRatio, 2)
+}
+
+/**
+ * Camera
+ */
+// Base camera
+const camera = new THREE.PerspectiveCamera(25, sizes.width / sizes.height, 0.1, 100)
+camera.position.x = 12
+camera.position.y = 5
+camera.position.z = 4
+// camera.position.z = 14
+scene.add(camera)
+
+// Controls
+const controls = new OrbitControls(camera, canvas)
+controls.enableDamping = true
+
 // Loaders
 const textureLoader = new THREE.TextureLoader()
 textureLoader.setCrossOrigin("anonymous");
+
+/**
+ * Raycaster
+ */
+const raycaster = new THREE.Raycaster()
 
 /**
  * Earth
@@ -75,6 +104,7 @@ const earthMaterial = new THREE.ShaderMaterial({
 })
 const earth = new THREE.Mesh(earthGeometry, earthMaterial)
 earth.geometry.rotateY(-Math.PI * 0.5);
+earth.name = 'earth';
 
 scene.add(earth)
 
@@ -118,27 +148,17 @@ const debugSun = new THREE.Mesh(
 /**
  * Add Coordinates
 */
-
 // Массив для хранения лейблов
-// const labels = [];
+const labels = [];
 
-// Глобальная функция для обновления позиции всех лейблов
-// const updateLabelPositions = (camera, renderer) => {
-//     labels.forEach(({ label, position }) => {
-//         const screenPosition = position.clone().project(camera);
-//         // const x = (screenPosition.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-//         // const y = (-screenPosition.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
+// Массив для хранения типонов
+const points = [];
 
-//         const x = (-screenPosition.x * 0.5 + 0.5) * renderer.domElement.clientWidth;
-//         const y = (screenPosition.y * 0.5 + 0.5) * renderer.domElement.clientHeight;
-
-//         label.style.left = `${x}px`;
-//         label.style.top = `${y}px`;
-//     });
-// };
+let countPoints = 1;
+let sceneReady = true;
 
 // Функция для добавления нового объекта (например, конуса) на сферу
-const addLocation = (latitude, longitude, radiusEarth) => {
+const addLocation = (latitude, longitude, radiusEarth, cityName) => {
     let coordSpherical = {
         lat: THREE.MathUtils.degToRad(90 - latitude),
         lon: THREE.MathUtils.degToRad(longitude)
@@ -154,13 +174,6 @@ const addLocation = (latitude, longitude, radiusEarth) => {
     // check we did it correctly
     // let spherical = new THREE.Spherical().setFromVector3(positionVector);
     // console.log(spherical);
-
-    // let lineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), positionVector]);
-    // let line = new THREE.Line(
-    //     lineGeom,
-    //     new THREE.LineBasicMaterial({ color: "yellow" })
-    // );
-    // earth.add(line);
 
     // Начальная и конечная точки линии
     const start = new THREE.Vector3(0, 0, 0); // Начало линии
@@ -185,27 +198,197 @@ const addLocation = (latitude, longitude, radiusEarth) => {
     // Добавляем линию к сцене
     earth.add(line);
 
+    
+    // Создаем HTML-элемент для точки в координате города
+    const label = document.createElement('div');
+    label.classList.add('point', `point_${countPoints}`);
 
-    // Создаем HTML-элемент для текста
-    // const label = document.createElement('div');
-    // label.className = 'city-label';
-    // label.textContent = cityName;
-    // label.style.position = 'absolute';
-    // label.style.color = 'white';
-    // label.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    // label.style.padding = '2px 5px';
-    // label.style.borderRadius = '4px';
-    // label.style.fontSize = '12px';
+    // Передаем координаты точки в дата атрибуты элемента html
+    // label.setAttribute("data_coordinate_x", `${positionVector.x}`)
+    // label.setAttribute("data_coordinate_y", `${positionVector.y}`)
+    // label.setAttribute("data_coordinate_z", `${positionVector.z}`)
 
-    // // Добавляем элемент на страницу
-    // document.body.appendChild(label);
+    // Создаем элемент круга на координате
+    const labelCircle = document.createElement('div');
+    labelCircle.classList.add('label');
+    label.appendChild(labelCircle);
 
-    // // Сохраняем лейбл и позицию в массив labels
-    // labels.push({ label, position: newEnd });
+    // Создаем элемент с анимацией пульсации
+    const pulseCircle = document.createElement('div');
+    pulseCircle.classList.add('pulseTipon');
+    label.appendChild(pulseCircle);
 
-    // Обновляем позицию элемента сразу после создания
-    // updateLabelPositions(camera, renderer);
+    // Создаем элемент с текстом-описанием точки на координате
+    const textInfo = document.createElement('div');
+    textInfo.classList.add('text');
+
+    const cityTitle = document.createElement('div');
+    cityTitle.classList.add('city_name');
+    cityTitle.textContent = cityName;
+    textInfo.appendChild(cityTitle);
+
+    const latitudeInfo = document.createElement('div');
+    latitudeInfo.classList.add('city_latitude');
+    latitudeInfo.textContent = latitude;
+    textInfo.appendChild(latitudeInfo);
+
+    const longitudeInfo = document.createElement('div');
+    longitudeInfo.classList.add('city_longitude');
+    longitudeInfo.textContent = longitude;
+    textInfo.appendChild(longitudeInfo);
+
+    label.appendChild(textInfo);
+
+    // Добавляем элемент на страницу
+    document.body.appendChild(label);
+
+    // Добавляем новому элементу точки обработчик клика
+    label.addEventListener('click', () => {
+        label.classList.toggle('show');
+
+        // Берем переданные координаты чтобы подлететь к ним камерой +-
+        // let labelXCoordinate = label.getAttribute('data_coordinate_x');
+        // let labelYCoordinate = label.getAttribute('data_coordinate_y');
+        // let labelZCoordinate = label.getAttribute('data_coordinate_z');
+        // console.log(labelXCoordinate, labelYCoordinate, labelZCoordinate);
+
+        // camera.lookAt(labelXCoordinate, labelYCoordinate, labelZCoordinate)
+
+        // Проверка наличия класса 'show' у остальных точек
+        labels.forEach((otherLabel) => {
+            if (otherLabel.label !== label) {
+                otherLabel.label.classList.remove('show');
+            }
+        });
+    });
+
+    // Сохраняем лейбл и позицию в массив labels
+    labels.push({ label, position: newEnd });
+
+    // Добавляем уникальные координаты каждой созданной точке в массиве
+    points.push({
+        position: new THREE.Vector3(positionVector.x, positionVector.y, positionVector.z), 
+        element: document.querySelector(`.point_${countPoints}`)
+    })
+
+    countPoints++;
+    console.log(points);
 }
+
+
+// Добавление точек с анимацией появления линии (пока криво)
+// const addLocation = (latitude, longitude, radiusEarth, cityName) => {
+//     let coordSpherical = {
+//         lat: THREE.MathUtils.degToRad(90 - latitude),
+//         lon: THREE.MathUtils.degToRad(longitude)
+//     };
+
+//     let positionVector = new THREE.Vector3().setFromSphericalCoords(
+//         radiusEarth,
+//         coordSpherical.lat,
+//         coordSpherical.lon
+//     );
+
+//     const start = new THREE.Vector3(0, 0, 0);
+//     const end = positionVector.clone();
+//     const direction = end.clone().sub(start).normalize();
+
+//     // Создаём линию без удлинения
+//     let lineGeom = new THREE.BufferGeometry().setFromPoints([start, start]); // Начало и конец совпадают
+//     let line = new THREE.Line(
+//         lineGeom,
+//         new THREE.LineBasicMaterial({ color: "yellow" })
+//     );
+
+//     earth.add(line);
+
+//     const label = document.createElement('div');
+//     label.classList.add('point', `point_${countPoints}`);
+
+//     const labelCircle = document.createElement('div');
+//     labelCircle.classList.add('label');
+//     label.appendChild(labelCircle);
+
+//     const pulseCircle = document.createElement('div');
+//     pulseCircle.classList.add('pulseTipon');
+//     label.appendChild(pulseCircle);
+
+//     const textInfo = document.createElement('div');
+//     textInfo.classList.add('text');
+
+//     const cityTitle = document.createElement('div');
+//     cityTitle.classList.add('city_name');
+//     cityTitle.textContent = cityName;
+//     textInfo.appendChild(cityTitle);
+
+//     const latitudeInfo = document.createElement('div');
+//     latitudeInfo.classList.add('city_latitude');
+//     latitudeInfo.textContent = latitude;
+//     textInfo.appendChild(latitudeInfo);
+
+//     const longitudeInfo = document.createElement('div');
+//     longitudeInfo.classList.add('city_longitude');
+//     longitudeInfo.textContent = longitude;
+//     textInfo.appendChild(longitudeInfo);
+
+//     label.appendChild(textInfo);
+
+//     document.body.appendChild(label);
+
+//     label.addEventListener('click', () => {
+//         // Закрыть все остальные линии
+//         labels.forEach((otherLabel) => {
+//             if (otherLabel.label !== label) {
+//                 otherLabel.label.classList.remove('show');
+//                 otherLabel.line.geometry.setFromPoints([start, start]); // Возвращаем линию в исходное состояние
+//             }
+//         });
+    
+//         // Переключаем текущий лейбл
+//         label.classList.toggle('show');
+    
+//         if (label.classList.contains('show')) {
+//             const lengthIncrease = 0.5;
+//             const newEnd = end.clone().add(direction.clone().multiplyScalar(lengthIncrease)); // Фиксированное конечное положение
+    
+//             // Анимация изменения длины линии
+//             const animationDuration = 200; // Длительность анимации в мс
+//             let startTime = null;
+    
+//             const animateLine = (timestamp) => {
+//                 if (!startTime) startTime = timestamp;
+//                 const elapsedTime = timestamp - startTime;
+//                 const progress = Math.min(elapsedTime / animationDuration, 1);
+    
+//                 // Вычисляем промежуточное положение конца линии
+//                 const intermediateEnd = start.clone().lerp(newEnd, progress);
+    
+//                 // Обновляем геометрию линии
+//                 lineGeom.setFromPoints([start, intermediateEnd]);
+    
+//                 if (progress < 1) {
+//                     requestAnimationFrame(animateLine);
+//                 }
+//             };
+    
+//             // Всегда начинаем с исходного состояния
+//             lineGeom.setFromPoints([start, start]);
+//             requestAnimationFrame(animateLine);
+//         } else {
+//             // Скрыть линию (возврат к начальной точке)
+//             lineGeom.setFromPoints([start, start]);
+//         }
+//     });    
+
+//     // Сохраняем информацию о лейбле и линии
+//     labels.push({ label, line });
+//     points.push({
+//         position: positionVector,
+//         element: document.querySelector(`.point_${countPoints}`)
+//     });
+
+//     countPoints++;
+// };
 
 
 // Объект для хранения добавляемых координат
@@ -216,9 +399,14 @@ const locationsData = {
         name: 'Moscow'
     },
     location2: {
-        latitude: 25.792235,
-        longitude: -80.250852,
-        name: 'Miami'
+        latitude: -37.813747,
+        longitude: 144.963033,
+        name: 'Melbourne'
+    },
+    location3: {
+        latitude: 39.901850,
+        longitude: 116.391441,
+        name: 'Beijing'
     }
 };
 
@@ -230,7 +418,7 @@ for (const key in locationsData) {
     }
 }
 
-console.log(locationsData);
+// console.log(locationsData);
 
 
 // Наша форма
@@ -305,14 +493,6 @@ gui
     .max(Math.PI)
     .onChange(updateSun)
 
-/**
- * Sizes
- */
-const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-    pixelRatio: Math.min(window.devicePixelRatio, 2)
-}
 
 window.addEventListener('resize', () =>
 {
@@ -330,31 +510,215 @@ window.addEventListener('resize', () =>
     renderer.setPixelRatio(sizes.pixelRatio)
 })
 
-/**
- * Camera
- */
-// Base camera
-const camera = new THREE.PerspectiveCamera(25, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 12
-camera.position.y = 5
-camera.position.z = 4
-// camera.position.z = 14
-scene.add(camera)
 
-// Controls
-const controls = new OrbitControls(camera, canvas)
-controls.enableDamping = true
+/**
+ * Points on globus
+ */
+// Логика типонов
+// controls.addEventListener('change', () => {
+//     positionTipons();
+// });
+
+// controls.addEventListener('end', () => {
+//     raycasterTipons();
+//     // console.log(renderer.info)
+//     // console.log(camera.position);
+// });
+
+// function raycasterTipons() {
+//     if (sceneReady) {
+//         for(const point of points) {
+//             const screenPosition = point.position.clone()
+//             screenPosition.project(camera)
+
+//             raycaster.setFromCamera(screenPosition, camera)
+//             const intersects = raycaster.intersectObjects(scene.children, true)
+
+//             if (intersects.length === 0) {
+//                 point.element.classList.add('visible')
+//             }
+//             else {
+//                 const intersectionDistance = intersects[0].distance
+//                 const pointDistance = point.position.distanceTo(camera.position)
+//                 if (intersectionDistance < pointDistance) {
+//                     point.element.classList.remove('visible')
+//                 }
+//                 else {
+//                     point.element.classList.add('visible')
+//                 }
+//             }
+//         }
+//     }
+// }
+
+function raycasterTipons() {
+    if (sceneReady) {
+        for (const point of points) {
+            const screenPosition = point.position.clone();
+            screenPosition.project(camera);
+
+            raycaster.setFromCamera(screenPosition, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            if (intersects.length === 0) {
+                // Если нет пересечений, сделать элемент видимым
+                point.element.classList.add('visible');
+            } else {
+                // Найти пересечения только с мешем с именем "earth"
+                const earthIntersect = intersects.find(intersect => intersect.object.name === 'earth');
+
+                if (!earthIntersect) {
+                    // Если нет пересечения с "earth", сделать элемент видимым
+                    point.element.classList.add('visible');
+                } else {
+                    const intersectionDistance = earthIntersect.distance;
+                    const pointDistance = point.position.distanceTo(camera.position);
+
+                    if (intersectionDistance < pointDistance) {
+                        // Если пересечение ближе, чем точка, скрыть элемент
+                        point.element.classList.remove('visible');
+                    } else {
+                        // Иначе сделать элемент видимым
+                        point.element.classList.add('visible');
+                    }
+                }
+            }
+        }
+    }
+}
+
+function positionTipons() {
+    if (sceneReady) {
+        for(const point of points) {
+            const screenPosition = point.position.clone()
+            screenPosition.project(camera)
+
+            const translateX = screenPosition.x * sizes.width * 0.5
+            const translateY = - screenPosition.y * sizes.height * 0.5
+            point.element.style.transform = `translate(${translateX}px, ${translateY}px)`
+        }
+    }
+}
+
+
+// Попытка сохранить координаты точек при анимации глобуса.
+// function raycasterTipons() {
+//     if (sceneReady) {
+//         for (const point of points) {
+//             // Получаем мировую позицию точки
+//             const worldPosition = point.position.clone();
+            
+//             // Применяем вращение Земли (rotation.y) к позиции точки
+//             const rotationMatrix = new THREE.Matrix4();
+//             rotationMatrix.makeRotationY(earth.rotation.y); // Ротация Земли
+//             worldPosition.applyMatrix4(rotationMatrix);
+
+//             // Проецируем точку на экран
+//             const screenPosition = worldPosition.clone();
+//             screenPosition.project(camera);
+
+//             // Используем raycaster для определения видимости
+//             raycaster.setFromCamera(screenPosition, camera);
+//             const intersects = raycaster.intersectObjects(scene.children, true);
+
+//             if (intersects.length === 0) {
+//                 // Если нет пересечений, точка видима
+//                 point.element.classList.add('visible');
+//             } else {
+//                 // Проверяем пересечение с мешем "earth"
+//                 const earthIntersect = intersects.find(intersect => {
+//                     // Проверяем, что объект пересечения — это Земля, а не её дочерние элементы
+//                     return intersect.object.name === 'earth' && intersect.object === earth;
+//                 });
+
+//                 if (earthIntersect) {
+//                     // Точка скрыта только если она за Землей в пространстве камеры
+//                     const intersectionDistance = earthIntersect.distance;
+//                     const pointDistance = point.position.distanceTo(camera.position);
+
+//                     // Если точка находится за Землей в пространстве камеры, скрываем её
+//                     if (intersectionDistance < pointDistance) {
+//                         point.element.classList.remove('visible');
+//                     } else {
+//                         point.element.classList.add('visible');
+//                     }
+//                 } else {
+//                     // Если пересечение не с Землей, точка видима
+//                     point.element.classList.add('visible');
+//                 }
+//             }
+//         }
+//     }
+// }
+
+// function positionTipons() {
+//     if (sceneReady) {
+//         for (const point of points) {
+//             // Получаем координаты точки в мировом пространстве
+//             const worldPosition = point.position.clone();
+            
+//             // Применяем вращение Земли (rotation.y) к позиции точки
+//             const rotationMatrix = new THREE.Matrix4();
+//             rotationMatrix.makeRotationY(earth.rotation.y); // Ротация Земли
+
+//             // Применяем ротацию к мировым координатам
+//             worldPosition.applyMatrix4(rotationMatrix);
+
+//             // Проецируем точку на экран
+//             const screenPosition = worldPosition.clone();
+//             screenPosition.project(camera);
+
+//             // Расчитываем смещения
+//             const translateX = screenPosition.x * sizes.width * 0.5;
+//             const translateY = -screenPosition.y * sizes.height * 0.5;
+
+//             // Применяем трансформацию
+//             point.element.style.transform = `translate(${translateX}px, ${translateY}px)`;
+//         }
+//     }
+// }
+
+// controls.update();
+
+
+
+/**
+ * Point click
+ */
+// const pointsOnModel = document.querySelectorAll('.point')
+
+// pointsOnModel.forEach((point) => {
+//     point.addEventListener('click', () => {
+//         point.classList.toggle('show')
+
+//         // Проверка наличия класса 'show' у остальных точек
+//         pointsOnModel.forEach((otherPoint) => {
+//             if (otherPoint !== point) {
+//                 if (otherPoint.classList.contains('show')) {
+//                     otherPoint.classList.remove('show')
+//                 }
+//             }
+//         })
+//     })
+// })
+
 
 /**
  * Renderer
  */
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
-    antialias: true
+    antialias: true,
+    powerPreference: 'high-performance',
+    precision: 'lowp'
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(sizes.pixelRatio)
+renderer.shadowMap.autoUpdate = false;
 renderer.setClearColor('#000011')
+
+
+// console.log(scene.children)
 
 /**
  * Animate
@@ -363,16 +727,16 @@ const clock = new THREE.Clock()
 
 const tick = () =>
 {
-    const elapsedTime = clock.getElapsedTime()
-
     // Обновляем вращение Земли
-    earth.rotation.y = elapsedTime * 0.1
-
-    // Обновляем позиции всех лейблов
-    // updateLabelPositions(camera, renderer);
+    const elapsedTime = clock.getElapsedTime()
+    // earth.rotation.y = elapsedTime * 0.1
 
     // Update controls
     controls.update()
+
+    // Обновляем позицию и видимость типонов
+    raycasterTipons();
+    positionTipons();
 
     // Render
     renderer.render(scene, camera)

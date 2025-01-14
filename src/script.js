@@ -159,16 +159,21 @@ let sceneReady = true;
 
 // Функция для добавления нового объекта (например, конуса) на сферу
 const addLocation = (latitude, longitude, radiusEarth, cityName) => {
+    // degToRad - Преобразует градусы в радианы.
+    // Выражение (90 - latitude) используется для корректировки координаты широты: в географической системе, 0° широты — это экватор, а в сферической системе (используемой в этом коде), полюс находится в направлении оси Y. Таким образом, координата широты lat указывается как угол отклонения от оси Y (полярный угол).
     let coordSpherical = {
         lat: THREE.MathUtils.degToRad(90 - latitude),
         lon: THREE.MathUtils.degToRad(longitude)
     };
     // console.log(coordSpherical);
 
+    // setFromSphericalCoords: Устанавливает этот вектор из сферических координат радиуса, phi и theta.
+    // phi - полярный угол в радианах от оси y (вверх). По умолчанию 0. 
+    // theta - экваторный угол в радианах вокруг оси y (вверх). По умолчанию 0.
     let positionVector = new THREE.Vector3().setFromSphericalCoords(
-        radiusEarth,
-        coordSpherical.lat,
-        coordSpherical.lon
+        radiusEarth,        // радиус сферы (например, радиус Земли)
+        coordSpherical.lat, // полярный угол (широта в радианах)
+        coordSpherical.lon  // экваторный угол (долгота в радианах)
     );
 
     // check we did it correctly

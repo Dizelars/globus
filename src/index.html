@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earth</title>
+    <link rel="stylesheet" href="./style/style.css">
+</head>
+<body>
+
+    <canvas class="webgl"></canvas>
+
+    <div class="addLocations">
+        <div class="addLocations_wrapper">
+            <h1 class="title">Add a point to the globe</h1>
+            <div class="addLocations_form">
+                <form action="">
+                    <div class="latitude">
+                        <label for="latitude">Latitude:</label>
+                        <input type="text" name="latitude" id="latitude" placeholder="55.755864" required>
+                    </div>
+                    <div class="longitude">
+                        <label for="longitude">Longitude:</label>
+                        <input type="text" name="longitude" id="longitude" placeholder="37.617698" required>
+                    </div>
+                    <div class="town_name">
+                        <label for="name">Town:</label>
+                        <input type="text" name="name" id="name" placeholder="Moscow" required>
+                    </div>
+                    <button class="addButton" type="submit">Add</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./script.js"></script>
+</body>
+</html>

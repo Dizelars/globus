@@ -1,0 +1,66 @@
+@import 'default/base.css';
+
+.webgl
+{
+    position: fixed;
+    top: 0;
+    left: 0;
+    outline: none;
+}
+
+.title {
+    font-family: 'MoscowSans', sans-serif;
+}
+
+.addLocations {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    z-index: 99999;
+}
+
+.addLocations_wrapper {
+    /* background: rgba(9, 9, 9, .5); */
+    background: rgba(105, 105, 105, 0.3);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 30px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.addLocations_form {
+    margin-top: 18px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+form div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+form input {
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    padding: 4px;
+}
+
+form button {
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.city-label {
+    pointer-events: none;
+}

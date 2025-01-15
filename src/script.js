@@ -223,10 +223,10 @@ const addLocation = (latitude, longitude, radiusEarth, cityName) => {
     );
 
     // Проверка, правильно ли пересчитаны координаты
-    let spherical = new THREE.Spherical().setFromVector3(positionVector);
-    console.log(`Широта: ${latitude}`);
-    console.log(`Долгота: ${longitude}`);
-    console.log(`Пересчитанная координата: ${spherical}`);
+    // let spherical = new THREE.Spherical().setFromVector3(positionVector);
+    // console.log(`Широта: ${latitude}`);
+    // console.log(`Долгота: ${longitude}`);
+    // console.log(`Пересчитанная координата: ${spherical}`);
 
     // Начальная и конечная точки линии по полученным координатам
     // Линия идет из центра глобуса
@@ -342,7 +342,7 @@ for (const key in locationsData) {
     }
 }
 
-// console.log(locationsData);
+console.log(locationsData);
 
 
 // Обработка формы ввода координат
